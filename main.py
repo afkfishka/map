@@ -20,6 +20,8 @@ class MainWindow(QMainWindow):
         self.getImage()
         self.initUI()
 
+        # Рассчитываем половину ширины окна
+        self.half_window_width = WINDOW_WIDTH / 2
 
     def getImage(self):
         server_address = 'https://static-maps.yandex.ru/1.x/'
@@ -65,7 +67,6 @@ class MainWindow(QMainWindow):
         self.pixmap = QPixmap(self.map_file)
         self.map.setPixmap(self.pixmap)
 
-
     def keyPressEvent(self, event):
         global z
         if event.key() == Qt.Key.Key_PageUp and z < 21:
@@ -76,6 +77,42 @@ class MainWindow(QMainWindow):
 
         elif event.key() == Qt.Key.Key_PageDown and z > 0:
             z -= 1
+            self.getImage()
+            self.pixmap = QPixmap(self.map_file)
+            self.map.setPixmap(self.pixmap)
+
+        elif event.key() == Qt.Key.Key_Left:
+            self.coord = list(map(float, self.ll.split(',')))
+            # Перемещение влево
+            self.coord[0] -= (self.half_window_width / (2 ** z))  # Изменение долготы
+            self.ll = ','.join(map(str, self.coord))
+            self.getImage()
+            self.pixmap = QPixmap(self.map_file)
+            self.map.setPixmap(self.pixmap)
+
+        elif event.key() == Qt.Key.Key_Right:
+            self.coord = list(map(float, self.ll.split(',')))
+            # Перемещение вправо
+            self.coord[0] += (self.half_window_width / (2 ** z))  # Изменение долготы
+            self.ll = ','.join(map(str, self.coord))
+            self.getImage()
+            self.pixmap = QPixmap(self.map_file)
+            self.map.setPixmap(self.pixmap)
+
+        elif event.key() == Qt.Key.Key_Up:
+            self.coord = list(map(float, self.ll.split(',')))
+            # Перемещение вверх
+            self.coord[1] += (self.half_window_width / (2 ** z))  # Изменение широты
+            self.ll = ','.join(map(str, self.coord))
+            self.getImage()
+            self.pixmap = QPixmap(self.map_file)
+            self.map.setPixmap(self.pixmap)
+
+        elif event.key() == Qt.Key.Key_Down:
+            self.coord = list(map(float, self.ll.split(',')))
+            # Перемещение вниз
+            self.coord[1] -= (self.half_window_width / (2 ** z))  # Изменение широты
+            self.ll = ','.join(map(str, self.coord))
             self.getImage()
             self.pixmap = QPixmap(self.map_file)
             self.map.setPixmap(self.pixmap)
