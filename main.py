@@ -1,32 +1,43 @@
 import os
 import sys
-
 import requests
 from PyQt6.QtGui import QPixmap
-from PyQt6.QtWidgets import QApplication, QWidget, QLabel
+from PyQt6.QtWidgets import QApplication, QMainWindow
 from PyQt6.QtCore import Qt
+from PyQt6.uic import loadUi
 
-SCREEN_SIZE = [600, 450]
-z = 0
+WINDOW_WIDTH = 650
+WINDOW_HEIGHT = 550
+z = 10
 
 
-class Example(QWidget):
+class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        loadUi('untitled.ui', self)
+        self.ll = '37.530887,55.703118'
+        self.setFixedSize(WINDOW_WIDTH, WINDOW_HEIGHT)
         self.getImage()
         self.initUI()
 
-    def getImage(self):
-        server_address = 'https://static-maps.yandex.ru/v1?'
-        api_key = 'f3a0fe3a-b07e-4840-a1da-06f18b2ddf13'
-        ll_spn = f'll=37.530887,55.703118&z={z}'
 
-        map_request = f"{server_address}{ll_spn}&apikey={api_key}"
-        response = requests.get(map_request)
+    def getImage(self):
+        server_address = 'https://static-maps.yandex.ru/1.x/'
+        api_key = 'f3a0fe3a-b07e-4840-a1da-06f18b2ddf13'
+        size = '650,450'
+        params = {
+            'll': self.ll,
+            'z': z,
+            'size': size,
+            'l': 'map',
+            'apikey': api_key
+        }
+
+        response = requests.get(server_address, params=params)
 
         if not response:
             print("Ошибка выполнения запроса:")
-            print(map_request)
+            print(response.url)
             print("Http статус:", response.status_code, "(", response.reason, ")")
             sys.exit(1)
 
@@ -35,35 +46,43 @@ class Example(QWidget):
             file.write(response.content)
 
     def initUI(self):
-        self.setGeometry(100, 100, *SCREEN_SIZE)
-        self.setWindowTitle('Отображение карты')
-
         self.pixmap = QPixmap(self.map_file)
-        self.image = QLabel(self)
-        self.image.move(0, 0)
-        self.image.resize(600, 450)
-        self.image.setPixmap(self.pixmap)
+        self.map.setPixmap(self.pixmap)
+        self.map.setFixedSize(650, 450)
+        self.pushButton1.clicked.connect(self.new_loc)
 
-    def closeEvent(self, event):
-        os.remove(self.map_file)
+    def new_loc(self):
+        server_address = 'http://geocode-maps.yandex.ru/1.x/?'
+        api_key = "1f9c9d43-845e-4888-a31f-6c1539fb2794"
+        geocode = self.lineEdit1.text()
+        geocoder_request = f'{server_address}apikey={api_key}&geocode={geocode}&format=json'
+        response = requests.get(geocoder_request)
+        json_response = response.json()
+        toponym = json_response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]
+        toponym_coodrinates = ','.join(toponym["Point"]["pos"].split())
+        self.ll = toponym_coodrinates
+        self.getImage()
+        self.pixmap = QPixmap(self.map_file)
+        self.map.setPixmap(self.pixmap)
+
 
     def keyPressEvent(self, event):
         global z
-        if event.key() == Qt.Key.Key_Up and z < 21:
+        if event.key() == Qt.Key.Key_PageUp and z < 21:
             z += 1
             self.getImage()
             self.pixmap = QPixmap(self.map_file)
-            self.image.setPixmap(self.pixmap)
+            self.map.setPixmap(self.pixmap)
 
-        elif event.key() == Qt.Key.Key_Down and z > 0:
+        elif event.key() == Qt.Key.Key_PageDown and z > 0:
             z -= 1
             self.getImage()
             self.pixmap = QPixmap(self.map_file)
-            self.image.setPixmap(self.pixmap)
+            self.map.setPixmap(self.pixmap)
 
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    ex = Example()
-    ex.show()
+    window = MainWindow()
+    window.show()
     sys.exit(app.exec())
